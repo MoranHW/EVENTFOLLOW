@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="en" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>EventFollow V2.3.1</title>
+<style>
+
+/* EventFollow V2.3.1 — visual refresh only. Existing JS and storage untouched. */
+:root{color-scheme:dark;--bg:#0d1c16;--panel:#1a3025;--field:#12261d;--border:#3b5a46;--text:#f6fbf5;--muted:#bdcfc0;--accent:#f4d35e}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;color:var(--text);font:15px/1.6 system-ui,Arial,sans-serif;background:radial-gradient(ellipse 75% 380px at 50% -130px,#274d37 0%,transparent 100%),var(--bg)}
+main{width:min(100%,1020px);margin:auto;padding:38px 20px 72px}
+header{padding:32px 32px 35px;border:1px solid var(--border);border-radius:22px;background:linear-gradient(135deg,#214431,#14271d 80%);box-shadow:0 14px 36px #050f0b50}
+.brand{color:var(--accent);font-size:12px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}
+h1{font:normal clamp(32px,5vw,49px)/1.15 Georgia,serif;letter-spacing:-.025em;margin:12px 0 10px}
+.subtitle,.hint{color:var(--muted)}.subtitle{margin:0;font-size:15px}.hint{font-size:12px}
+h2{font-size:22px;line-height:1.3;letter-spacing:-.02em;margin:0 0 20px}
+.panel{background:linear-gradient(180deg,#1d372a,var(--panel));border:1px solid var(--border);border-radius:20px;padding:26px;margin-top:22px;box-shadow:0 10px 28px #060e092e}
+label{display:block;font-weight:650;margin-bottom:8px;font-size:13px;color:#e6f1e7}
+form,.toolbar,.actions,.task{display:flex;gap:10px;align-items:center}
+input,button,select,textarea{font:inherit}
+input:not([type=file]),select,textarea{background:var(--field);color:var(--text);border:1px solid #43634d;border-radius:11px;padding:12px 13px;min-height:48px;min-width:0;transition:border-color .2s,box-shadow .2s}
+input::placeholder,textarea::placeholder{color:#99af9e}
+input:focus,select:focus,textarea:focus{border-color:var(--accent);box-shadow:0 0 0 2px #f4d35e22}
+textarea{resize:vertical;width:100%}input[type=text]{flex:1;min-width:0}input[type=date]{max-width:190px}
+button{background:#244333;color:var(--text);border:1px solid #4b6c55;border-radius:10px;padding:10px 15px;min-height:43px;cursor:pointer;font-weight:600;transition:background .2s,border-color .2s,transform .15s}
+button:hover:not(:disabled){background:#31553f;border-color:var(--accent)}button:active:not(:disabled){transform:translateY(1px)}button:disabled{opacity:.45;cursor:not-allowed}
+.primary,.filter.active{background:var(--accent);color:#14251a;font-weight:800;border-color:var(--accent)}.primary:hover:not(:disabled),.filter.active:hover:not(:disabled){background:#ffe483;color:#102019}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+.event-form{flex-wrap:wrap}.event-form input{min-width:150px}.event-picker{margin-top:21px}.event-picker select{width:100%}
+.delete-event-row,.backup-control,.contacts-tools{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:13px}
+.delete-event-row button{font-size:13px}.backup-control{padding-top:15px;border-top:1px solid #38543f;margin-top:19px}
+.backup-control button,.contacts-tools button{font-size:13px}.backup-status,#message,#contactsStatus{color:var(--accent);min-height:22px;margin-top:10px;font-size:13px}
+#taskForm{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;align-items:stretch}
+#taskInput{grid-column:1/-1;width:100%;font-size:16px;min-height:56px}
+#taskForm select,#taskForm input[type=date]{width:100%;max-width:none}#taskForm button{grid-column:1/-1;justify-self:start;min-width:138px}
+.toolbar{justify-content:space-between;flex-wrap:wrap;margin:25px 0 18px;padding:14px 0;border-top:1px solid #395540;border-bottom:1px solid #395540}
+.filters{display:flex;gap:7px;flex-wrap:wrap}.filters button{min-height:37px;padding:7px 14px;font-size:13px}
+.counter,.priority-label{color:var(--accent);font-weight:700}.counter{font-size:13px;background:#10271c;border:1px solid #395841;border-radius:30px;padding:7px 13px}
+.sort-control{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.sort-control label{margin:0}.sort-control select{flex:1;max-width:300px}
+.search-control{margin:17px 0}.search-control input{display:block;width:100%}
+#taskList,#contactList,.contact-tasks{list-style:none;padding:0;margin:0}
+.task{justify-content:space-between;gap:16px;padding:18px;margin-top:10px;border:1px solid #3e5c47;border-radius:14px;background:#152c20}
+.task-details{flex:1;min-width:0}.task-name{display:block;overflow-wrap:anywhere;font-weight:650;font-size:16px}.task-meta{display:block;color:var(--muted);font-size:12px;margin-top:7px;line-height:1.7}
+.task.done .task-name{text-decoration:line-through;color:var(--muted)}.actions{flex-shrink:0;flex-wrap:wrap;max-width:350px;justify-content:flex-start}
+.edit-form{flex:1;flex-wrap:wrap;min-width:0}.edit-form input[type=text]{min-width:160px}
+.empty{color:var(--muted);text-align:center;padding:30px 12px;border:1px dashed #4a6851;border-radius:13px;margin-top:10px}
+.priority-label{display:inline-block;margin-inline-start:8px;font-size:12px;background:#3e3a1c;padding:2px 8px;border-radius:6px}
+.overdue-label{display:inline-block;color:var(--accent);background:#3b301a;border:1px solid #c3a94d;border-radius:20px;font-size:12px;padding:2px 10px;margin-inline-start:8px}
+.actions button{padding:7px 10px;font-size:12px;min-height:36px}
+.contacts-tools .search-control{flex:1;min-width:190px;margin:0}.contacts-tools .search-control label{margin-bottom:6px}
+#contactsCount{font-size:12px;color:var(--muted);margin:14px 0}
+.contact{padding:17px 18px;margin-top:10px;background:#152b20;border:1px solid #405e48;border-radius:14px}
+.contact-top{display:flex;align-items:center;justify-content:space-between;gap:12px}.contact-heading{flex:1;min-width:0}
+.contact-name-button{display:block;text-align:start;font-size:17px;font-weight:750;border:0;background:transparent;padding:3px 0;min-height:30px;width:100%}.contact-name-button:hover{color:var(--accent);background:transparent;border-color:transparent}
+.contact-company{color:var(--muted);font-size:13px}
+.contact-profile[hidden]{display:none}.contact-profile{background:#0e2419;border:1px solid #42644d;border-radius:12px;padding:19px;margin-top:16px}
+.profile-title{font-weight:750;color:var(--accent);margin:17px 0 9px;font-size:13px;text-transform:uppercase;letter-spacing:.06em}
+.contact-fields{display:flex;flex-direction:column;gap:7px;font-size:13px}.contact-fields a{color:var(--accent);overflow-wrap:anywhere}
+.contact-note{white-space:pre-wrap;overflow-wrap:anywhere;color:var(--muted);font-size:14px}
+.contact-task-summary,.profile-empty{font-size:13px;color:var(--muted)}.contact-tasks li{padding:8px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere;font-size:13px}.contact-tasks .completed{text-decoration:line-through;color:var(--muted)}
+.add-contact-task{color:var(--accent);border-color:#947f41;flex-shrink:0}
+.contact-form{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}.contact-form label{font-size:13px;margin-bottom:4px}.contact-form .field{min-width:0}.contact-form input,.contact-form textarea{display:block;width:100%}.contact-form .full{grid-column:1/-1}.contact-form .form-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.manual-wrap[hidden],.edit-contact-wrap[hidden]{display:none}.manual-wrap,.edit-contact-wrap{border:1px solid var(--border);border-radius:13px;padding:18px;margin-top:15px;background:#12291d}.edit-contact-wrap{background:var(--panel)}#contactFile{display:none}
+dialog{width:min(94vw,630px);max-height:85vh;overflow:auto;background:var(--panel);color:var(--text);border:1px solid var(--accent);border-radius:17px;padding:26px;box-shadow:0 24px 80px #0008}dialog::backdrop{background:rgba(0,0,0,.75)}dialog code{color:var(--accent)}
+.csv-example{direction:ltr;text-align:left;white-space:pre-wrap;overflow-wrap:anywhere;background:var(--field);border:1px solid var(--border);border-radius:10px;padding:14px;font:12px/1.6 monospace}.help-actions{display:flex;justify-content:end;margin-top:15px}
+footer{color:var(--muted);font-size:12px;text-align:center;margin-top:28px}
+@media(max-width:700px){main{padding:17px 12px 44px}header{padding:25px 22px}.panel{padding:19px;margin-top:16px}#taskForm{grid-template-columns:repeat(2,minmax(0,1fr))}.task{flex-direction:column;align-items:stretch}.actions{max-width:none}.contact-form{grid-template-columns:1fr}.contact-form .full{grid-column:1}}
+@media(max-width:480px){form{flex-direction:column;align-items:stretch}#taskForm{grid-template-columns:1fr}#taskForm #taskInput,#taskForm button{grid-column:1}#taskForm button{justify-self:stretch}.actions{width:100%}.actions button{flex:1}.edit-form{width:100%}.contact-top{flex-direction:column;align-items:stretch}.contacts-tools .search-control{min-width:100%}.contact{padding:14px}.task{padding:14px}.sort-control select{max-width:100%}input[type=date]{max-width:none}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}button,input,select,textarea{transition:none}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="brand">EVENTFOLLOW · V2.3.1</div><h1>Follow-ups, under control.</h1><p class="subtitle">Events, follow-ups and contacts. Private on this browser.</p></header>
+<section class="panel">
+  <label for="eventName">New event</label>
+  <form id="eventForm" class="event-form"><input id="eventName" type="text" maxlength="100" required placeholder="e.g. Web3 Conference" autocomplete="off"><button type="submit" class="primary">Add Event</button></form>
+  <div class="event-picker"><label for="eventFilter">Show tasks from</label><select id="eventFilter"><option value="all">All events</option><option value="unassigned">Unassigned</option></select>
+    <div class="delete-event-row"><button id="deleteEvent" type="button" disabled>Delete selected event</button><span class="hint">Tasks will move to Unassigned.</span></div>
+  </div>
+  <div class="backup-control"><button id="exportBackup" type="button" class="primary">💾 Export JSON</button></div>
+  <div id="backupStatus" class="backup-status" role="status" aria-live="polite"></div>
+</section>
+<section class="panel" id="tasksSection">
+  <label for="taskInput">New follow-up task</label>
+  <form id="taskForm"><input id="taskInput" type="text" maxlength="300" required autocomplete="off" placeholder="e.g. Email Maya after the conference">
+    <input id="taskDue" type="date" aria-label="Due date (optional)">
+    <select id="taskEvent" aria-label="Task event"><option value="">Unassigned</option></select>
+    <select id="taskPriority" aria-label="Task priority"><option value="Medium">Medium</option><option value="High">High</option><option value="Low">Low</option></select>
+    <select id="taskContact" aria-label="Task contact"><option value="">No contact</option></select>
+    <button type="submit" class="primary">Add Task</button>
+  </form>
+  <div id="message" role="status" aria-live="polite"></div>
+  <div class="toolbar"><div class="filters" role="group" aria-label="Task status"><button type="button" class="filter active" data-filter="all" aria-pressed="true">All</button><button type="button" class="filter" data-filter="open" aria-pressed="false">Open</button><button type="button" class="filter" data-filter="completed" aria-pressed="false">Completed</button></div><div id="openCount" class="counter">0 open tasks</div></div>
+  <div class="sort-control"><label for="sortMode">Sort tasks</label><select id="sortMode"><option value="original">Original order</option><option value="soonest">Due date: earliest first</option><option value="latest">Due date: latest first</option></select></div>
+  <div class="search-control"><label for="taskSearch">Search tasks</label><input id="taskSearch" type="text" maxlength="300" autocomplete="off" placeholder="Search task text..."></div>
+  <ul id="taskList"></ul>
+</section>
+<section class="panel" id="contactsSection">
+  <h2>Contacts Directory</h2>
+  <div class="contacts-tools"><div class="search-control"><label for="contactSearch">Find a person</label><input id="contactSearch" type="text" autocomplete="off" placeholder="Search name, company, email, phone..."></div>
+    <button id="addContactButton" type="button" class="primary">+ Add Contact</button><button id="importCsv" type="button">Import CSV</button><button id="csvHelpButton" type="button">CSV Help ?</button><input id="contactFile" type="file" accept=".csv,text/csv">
+  </div>
+  <div id="manualWrap" class="manual-wrap" hidden><strong>Add contact manually</strong><form id="manualContactForm" class="contact-form"></form></div>
+  <div id="contactsStatus" role="status" aria-live="polite"></div><div id="contactsCount"></div><ul id="contactList"></ul>
+</section>
+<dialog id="csvHelpDialog" aria-labelledby="csvHelpTitle">
+  <h3 id="csvHelpTitle">How to prepare your CSV</h3>
+  <p>Prepare a spreadsheet in Excel or Google Sheets. The first row must contain headers.</p>
+  <p><strong>Required:</strong> <code>Name</code> or <code>First Name</code> / <code>Last Name</code>.</p>
+  <p><strong>Optional:</strong> <code>Company</code>, <code>Email</code>, <code>Phone</code>, <code>LinkedIn</code>, <code>Notes</code>.</p>
+  <pre class="csv-example">Name,Company,Email,Phone,LinkedIn,Notes
+Alex Cohen,Example Ventures,alex@example.com,+972501234567,https://www.linkedin.com/in/example-alex,Met at conference
+Maya Levi,Tech Startup,maya@example.com,+972509876543,,Discuss partnership</pre>
+  <p class="hint">Save as CSV UTF-8. Put fields containing commas in double quotes. Existing contacts are kept and duplicates are skipped.</p>
+  <div class="help-actions"><button id="closeCsvHelp" class="primary" type="button">Got it</button></div>
+</dialog>
+<footer>Saved locally with localStorage. No account or server.</footer>
+</main>
+<script>
+'use strict';
+const STORAGE_KEY='eventfollow-tasks-v1';
+const EVENTS_KEY='eventfollow-events-v1';
+const CONTACTS_KEY='eventfollow-contacts-v1';
+const get=id=>document.getElementById(id);
+let tasks=[],events=[],contacts=[];
+let filter='all',eventFilter='all',sortMode='original',searchQuery='',contactQuery='';
+let editingId=null,expandedContactId=null,editingContactId=null,storageAvailable=true;
+function message(s){get('message').textContent=s;}
+function contactMessage(s){get('contactsStatus').textContent=s;}
+function backupMessage(s){get('backupStatus').textContent=s;}
+function makeId(){return Date.now().toString(36)+'-'+Math.random().toString(36).slice(2);}
+function validDue(v){
+  if(v===''||v===undefined)return true;
+  if(typeof v!=='string'||!/^[0-9]{4}-[0-9]{2}-[0-9]{2}$/.test(v))return false;
+  const d=new Date(v+'T12:00:00');
+  return !Number.isNaN(d.getTime())&&d.getFullYear()===Number(v.slice(0,4))&&d.getMonth()+1===Number(v.slice(5,7))&&d.getDate()===Number(v.slice(8,10));
+}
+function localToday(){const d=new Date();return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function isOverdue(t){return !t.done&&Boolean(t.due)&&validDue(t.due)&&t.due<localToday();}
+function validTasks(a){return Array.isArray(a)&&a.every(t=>t&&typeof t.id==='string'&&typeof t.text==='string'&&typeof t.done==='boolean'&&validDue(t.due)&&(t.eventId===undefined||typeof t.eventId==='string')&&(t.contactId===undefined||typeof t.contactId==='string')&&(t.priority===undefined||['High','Medium','Low'].includes(t.priority)));}
+function validEvents(a){return Array.isArray(a)&&a.every(e=>e&&typeof e.id==='string'&&typeof e.name==='string'&&!!e.name.trim());}
+function validContacts(a){return Array.isArray(a)&&a.every(c=>c&&typeof c.id==='string'&&typeof c.name==='string'&&!!c.name.trim()&&['company','email','phone','linkedin','notes'].every(k=>typeof c[k]==='string'));}
+function load(){
+ try{
+  const entries=[[STORAGE_KEY,validTasks],[EVENTS_KEY,validEvents],[CONTACTS_KEY,validContacts]],results=[];
+  for(const [key,validate] of entries){const raw=localStorage.getItem(key),parsed=raw===null?[]:JSON.parse(raw);if(!validate(parsed))throw Error('Invalid data: '+key);results.push(parsed);}
+  [tasks,events,contacts]=results;
+  const test=EVENTS_KEY+'-test';localStorage.setItem(test,'ok');if(localStorage.getItem(test)!=='ok')throw Error('Storage unavailable');localStorage.removeItem(test);
+ }catch(e){console.error(e);storageAvailable=false;message('Saved data could not be read safely. Changes are disabled to protect existing data.');}
+}
+function store(key,value){
+ if(!storageAvailable){message('Cannot save: storage unavailable.');return false;}
+ try{const json=JSON.stringify(value);localStorage.setItem(key,json);if(localStorage.getItem(key)!==json)throw Error('Save verification failed');return true;}
+ catch(e){console.error(e);message('Could not save. Data was not updated.');return false;}
+}
+function saveTasks(next){if(!store(STORAGE_KEY,next))return false;tasks=next;message('Saved locally.');render();renderContacts();return true;}
+function saveEvents(next){if(!store(EVENTS_KEY,next))return false;events=next;renderEventOptions();render();message('Saved locally.');return true;}
+function saveContacts(next){if(!store(CONTACTS_KEY,next)){contactMessage('Could not save contact.');return false;}contacts=next;renderContactOptions();renderContacts();render();contactMessage('Contact saved locally.');return true;}
+function makeOption(value,text){const o=document.createElement('option');o.value=value;o.textContent=text;return o;}
+function eventName(id){return events.find(e=>e.id===id)?.name||'Unassigned';}
+function contactName(id){return contacts.find(c=>c.id===id)?.name||'Unknown contact';}
+function updateDeleteButton(){get('deleteEvent').disabled=!events.some(e=>e.id===eventFilter);}
+function renderEventOptions(){
+ const picker=get('eventFilter'),taskPicker=get('taskEvent'),old=taskPicker.value;
+ picker.replaceChildren(makeOption('all','All events'),makeOption('unassigned','Unassigned'));
+ taskPicker.replaceChildren(makeOption('','Unassigned'));
+ for(const e of events){picker.appendChild(makeOption(e.id,e.name));taskPicker.appendChild(makeOption(e.id,e.name));}
+ picker.value=eventFilter;taskPicker.value=events.some(e=>e.id===old)?old:'';updateDeleteButton();
+}
+function contactOptions(id=''){
+ const select=document.createElement('select');select.appendChild(makeOption('','No contact'));
+ for(const c of [...contacts].sort((a,b)=>a.name.localeCompare(b.name)))select.appendChild(makeOption(c.id,c.name+(c.company?' · '+c.company:'')));
+ if(id&&!contacts.some(c=>c.id===id))select.appendChild(makeOption(id,'Unknown contact'));
+ select.value=id;return select;
+}
+function renderContactOptions(){const select=get('taskContact'),old=select.value,replacement=contactOptions(old);select.replaceChildren(...replacement.children);select.value=old||'';}
+function restoreKey(key,old){if(old===null)localStorage.removeItem(key);else localStorage.setItem(key,old);if(localStorage.getItem(key)!==old)throw Error('Recovery failed: '+key);}
+function deleteSelectedEvent(){
+ const target=events.find(e=>e.id===eventFilter);if(!target)return message('Select an event to delete.');
+ const count=tasks.filter(t=>t.eventId===target.id).length;
+ if(!confirm('Delete event "'+target.name+'"? '+count+' task(s) will move to Unassigned. No tasks will be deleted.'))return;
+ if(!storageAvailable)return message('Storage unavailable.');
+ const nextTasks=tasks.map(t=>t.eventId===target.id?{...t,eventId:''}:t),nextEvents=events.filter(e=>e.id!==target.id);
+ let oldT,oldE;
+ try{
+  oldT=localStorage.getItem(STORAGE_KEY);oldE=localStorage.getItem(EVENTS_KEY);
+  const a=JSON.stringify(nextTasks),b=JSON.stringify(nextEvents);
+  localStorage.setItem(STORAGE_KEY,a);if(localStorage.getItem(STORAGE_KEY)!==a)throw Error('Task write failed');
+  localStorage.setItem(EVENTS_KEY,b);if(localStorage.getItem(EVENTS_KEY)!==b)throw Error('Event write failed');
+  tasks=nextTasks;events=nextEvents;eventFilter='all';editingId=null;renderEventOptions();render();renderContacts();message('Event deleted. Tasks moved to Unassigned.');
+ }catch(e){console.error(e);try{if(oldT!==undefined)restoreKey(STORAGE_KEY,oldT);if(oldE!==undefined)restoreKey(EVENTS_KEY,oldE);message('Delete failed. Previous data restored.');}catch(error){console.error(error);storageAvailable=false;message('Recovery failed. Stop editing and inspect your data.');}}
+}
+// V2.3: Calendar action creates a local, all-day .ics event. Does not modify storage.
+function icsEscape(value){return String(value).replace(/\\/g,'\\\\').replace(/\r\n|\r|\n/g,'\\n').replace(/,/g,'\\,').replace(/;/g,'\\;');}
+function nextDateISO(iso){const d=new Date(iso+'T12:00:00');d.setDate(d.getDate()+1);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+function utcStamp(){return new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d{3}/,'');}
+function downloadTaskCalendar(task){
+ if(!task.due||!validDue(task.due))return message('Choose a valid due date before adding to calendar.');
+ let url;
+ try{
+  const date=task.due.replace(/-/g,''),end=nextDateISO(task.due).replace(/-/g,'');
+  const person=contacts.find(c=>c.id===task.contactId);
+  const description='Event: '+eventName(task.eventId)+(person?'\nContact: '+person.name:'')+'\nPriority: '+(task.priority||'Medium');
+  const lines=['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//EventFollow//EN','CALSCALE:GREGORIAN','BEGIN:VEVENT','UID:'+task.id.replace(/[^a-zA-Z0-9_-]/g,'')+'@eventfollow.local','DTSTAMP:'+utcStamp(),'DTSTART;VALUE=DATE:'+date,'DTEND;VALUE=DATE:'+end,'SUMMARY:'+icsEscape('Follow up: '+task.text),'DESCRIPTION:'+icsEscape(description),'END:VEVENT','END:VCALENDAR'];
+  const blob=new Blob([lines.join('\r\n')+'\r\n'],{type:'text/calendar;charset=utf-8'});
+  url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='eventfollow-'+task.due+'-'+task.id.replace(/[^a-zA-Z0-9_-]/g,'').slice(0,24)+'.ics';document.body.appendChild(a);a.click();a.remove();message('Calendar file requested. Open the .ics file to add it to your calendar.');
+ }catch(error){console.error(error);message('Could not create calendar file. No data was changed.');}
+ finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);}
+}
+// V2.3: Email action launches the user's default mail app. Never sends automatically.
+function openDraft(email,subject,body){
+ if(!email||!email.includes('@')||/[\r\n]/.test(email))return message('This contact needs a valid email address.');
+ const url='mailto:'+encodeURIComponent(email)+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body);
+ window.location.href=url;
+ message('Email draft requested. Check your default email app.');
+}
+function emailTask(task){
+ const person=contacts.find(c=>c.id===task.contactId);
+ if(!person?.email)return message('Link this task to a contact with an email address first.');
+ openDraft(person.email,'Follow-up: '+task.text,'Hi '+person.name+',\n\n'+task.text+'\n\nBest regards,');
+}
+function render(){
+ const scoped=tasks.filter(t=>eventFilter==='all'||(eventFilter==='unassigned'?(!t.eventId||!events.some(e=>e.id===t.eventId)):t.eventId===eventFilter));
+ const open=scoped.filter(t=>!t.done).length;get('openCount').textContent=open+(open===1?' open task':' open tasks');
+ document.querySelectorAll('.filter').forEach(b=>{const active=b.dataset.filter===filter;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});
+ const visible=scoped.filter(t=>(filter==='all'||(filter==='open'&&!t.done)||(filter==='completed'&&t.done))&&t.text.toLocaleLowerCase().includes(searchQuery));
+ if(sortMode!=='original')visible.sort((a,b)=>{const da=a.due||null,db=b.due||null;if(!da&&!db)return 0;if(!da)return 1;if(!db)return -1;return sortMode==='soonest'?da.localeCompare(db):db.localeCompare(da);});
+ const list=get('taskList');list.replaceChildren();
+ if(!visible.length){const li=document.createElement('li');li.className='empty';li.textContent=searchQuery?'No tasks match your search.':filter==='open'?'No open follow-ups.':filter==='completed'?'No completed follow-ups yet.':'No follow-ups here yet.';list.appendChild(li);return;}
+ for(const t of visible){
+  const li=document.createElement('li');li.className='task'+(t.done?' done':'');
+  if(editingId===t.id){
+   const form=document.createElement('form');form.className='edit-form';
+   const input=document.createElement('input');input.type='text';input.value=t.text;input.maxLength=300;input.required=true;input.setAttribute('aria-label','Edit task');
+   const due=document.createElement('input');due.type='date';due.value=t.due||'';due.setAttribute('aria-label','Edit due date');
+   const event=document.createElement('select');event.setAttribute('aria-label','Edit event');event.appendChild(makeOption('','Unassigned'));for(const e of events)event.appendChild(makeOption(e.id,e.name));event.value=t.eventId||'';
+   const priority=document.createElement('select');priority.setAttribute('aria-label','Edit priority');for(const p of ['Medium','High','Low'])priority.appendChild(makeOption(p,p));priority.value=t.priority||'Medium';
+   const contact=contactOptions(t.contactId||'');contact.setAttribute('aria-label','Edit task contact');
+   const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Save';
+   const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.addEventListener('click',()=>{editingId=null;render();});
+   form.addEventListener('submit',e=>{e.preventDefault();const text=input.value.trim();if(!text||!validDue(due.value))return message('Enter a task and a valid date.');const next=tasks.map(x=>x.id===t.id?{...x,text,due:due.value,eventId:event.value,priority:priority.value,contactId:contact.value}:x);if(saveTasks(next)){editingId=null;render();}});
+   form.append(input,due,event,priority,contact,save,cancel);li.appendChild(form);list.appendChild(li);input.focus();input.select();continue;
+  }
+  const details=document.createElement('div');details.className='task-details';
+  const name=document.createElement('span');name.className='task-name';name.textContent=t.text;
+  const meta=document.createElement('span');meta.className='task-meta';meta.textContent='Event: '+eventName(t.eventId)+(t.contactId?' · Contact: '+contactName(t.contactId):'')+(t.due?' · Due: '+t.due:'');
+  const priority=document.createElement('span');priority.className='priority-label';priority.textContent='Priority: '+(t.priority||'Medium');details.append(name,meta,priority);
+  if(isOverdue(t)){const tag=document.createElement('span');tag.className='overdue-label';tag.textContent='Overdue';details.appendChild(tag);}
+  const actions=document.createElement('div');actions.className='actions';
+  const toggle=document.createElement('button');toggle.type='button';toggle.textContent=t.done?'Reopen':'Complete';toggle.addEventListener('click',()=>saveTasks(tasks.map(x=>x.id===t.id?{...x,done:!x.done}:x)));
+  const edit=document.createElement('button');edit.type='button';edit.textContent='Edit';edit.addEventListener('click',()=>{editingId=t.id;render();});
+  const del=document.createElement('button');del.type='button';del.textContent='Delete';del.addEventListener('click',()=>saveTasks(tasks.filter(x=>x.id!==t.id)));
+  actions.append(toggle,edit,del);
+  // Only display applicable actions; no unrelated data is changed.
+  if(t.due){const cal=document.createElement('button');cal.type='button';cal.textContent='📅 Calendar';cal.setAttribute('aria-label','Download calendar event for '+t.text);cal.addEventListener('click',()=>downloadTaskCalendar(t));actions.appendChild(cal);}
+  const person=contacts.find(c=>c.id===t.contactId);
+  if(person?.email){const email=document.createElement('button');email.type='button';email.textContent='✉ Email';email.setAttribute('aria-label','Draft email for '+t.text);email.addEventListener('click',()=>emailTask(t));actions.appendChild(email);}
+  li.append(details,actions);list.appendChild(li);
+ }
+}
+get('eventForm').addEventListener('submit',e=>{e.preventDefault();const input=get('eventName'),name=input.value.trim();if(!name)return message('Please enter an event name.');if(events.some(x=>x.name.toLowerCase()===name.toLowerCase()))return message('This event already exists.');if(saveEvents([...events,{id:makeId(),name}])){input.value='';input.focus();}});
+get('taskForm').addEventListener('submit',e=>{e.preventDefault();const input=get('taskInput'),text=input.value.trim(),due=get('taskDue').value,eventId=get('taskEvent').value,priority=get('taskPriority').value,contactId=get('taskContact').value;if(!text)return message('Please enter a task.');if(!validDue(due))return message('Please select a valid due date.');if(eventId&&!events.some(x=>x.id===eventId))return message('Select a valid event.');if(contactId&&!contacts.some(x=>x.id===contactId))return message('Select a valid contact.');if(!['High','Medium','Low'].includes(priority))return message('Select a valid priority.');if(saveTasks([...tasks,{id:makeId(),text,done:false,due,eventId,priority,contactId}])){input.value='';get('taskDue').value='';get('taskPriority').value='Medium';input.focus();}});
+get('taskSearch').addEventListener('input',e=>{searchQuery=e.target.value.trim().toLocaleLowerCase();editingId=null;render();});
+get('sortMode').addEventListener('change',e=>{sortMode=e.target.value;editingId=null;render();});
+get('eventFilter').addEventListener('change',e=>{eventFilter=e.target.value;editingId=null;updateDeleteButton();render();});
+get('deleteEvent').addEventListener('click',deleteSelectedEvent);
+document.querySelectorAll('.filter').forEach(b=>b.addEventListener('click',()=>{filter=b.dataset.filter;editingId=null;render();}));
+function exportBackup(){
+ if(!storageAvailable)return backupMessage('Export unavailable: storage error.');
+ let url;
+ try{const data={app:'EventFollow',version:'2.3',exportedAt:new Date().toISOString(),events,tasks,contacts};const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json;charset=utf-8'});url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download='eventfollow-backup-'+localToday()+'.json';document.body.appendChild(a);a.click();a.remove();backupMessage('Download requested. Check Downloads (Ctrl+J).');}
+ catch(e){console.error(e);backupMessage('Export failed. Data unchanged.');}
+ finally{if(url)setTimeout(()=>URL.revokeObjectURL(url),60000);}
+}
+get('exportBackup').addEventListener('click',exportBackup);
+function parseCSV(source){
+ const str=source.replace(/^\uFEFF/,''),rows=[];let row=[],field='',quoted=false;
+ for(let i=0;i<str.length;i++){
+  const ch=str[i];if(quoted){if(ch==='"'&&str[i+1]==='"'){field+='"';i++;}else if(ch==='"')quoted=false;else field+=ch;}
+  else if(ch==='"'){if(field!=='')throw Error('Invalid CSV quote');quoted=true;}
+  else if(ch===','){row.push(field);field='';}
+  else if(ch==='\n'||ch==='\r'){if(ch==='\r'&&str[i+1]==='\n')i++;row.push(field);if(row.some(v=>v.trim()))rows.push(row);row=[];field='';}
+  else field+=ch;
+ }
+ if(quoted)throw Error('Unclosed CSV quote');row.push(field);if(row.some(v=>v.trim()))rows.push(row);return rows;
+}
+function normalizeHeader(s){return s.trim().toLowerCase().replace(/[\s_-]+/g,'').replace(/[^a-z0-9]/g,'');}
+function csvContacts(rows){
+ if(rows.length<2)throw Error('CSV needs headers and contacts');
+ const headers=rows[0].map(normalizeHeader),find=(...names)=>headers.findIndex(h=>names.includes(h));
+ const col={name:find('name','fullname','contactname','displayname'),first:find('firstname','givenname'),last:find('lastname','surname','familyname'),company:find('company','organization','organisation','companyname'),email:find('email','emailaddress','email1value'),phone:find('phone','phonenumber','mobile','telephone','phone1value'),linkedin:find('linkedin','linkedinurl','linkedinprofile'),notes:find('notes','note','description')};
+ if(col.name<0&&col.first<0&&col.last<0)throw Error('Missing Name column');
+ const val=(row,i)=>i<0?'':(row[i]||'').trim(),result=[];
+ for(const row of rows.slice(1)){const name=val(row,col.name)||(val(row,col.first)+' '+val(row,col.last)).trim();if(!name)continue;result.push({id:makeId(),name:name.slice(0,200),company:val(row,col.company).slice(0,200),email:val(row,col.email).slice(0,250),phone:val(row,col.phone).slice(0,100),linkedin:val(row,col.linkedin).slice(0,500),notes:val(row,col.notes).slice(0,1000)});}
+ return result;
+}
+function contactKey(c){const email=c.email.trim().toLowerCase();return email?'email:'+email:'person:'+c.name.trim().toLowerCase()+'|'+c.company.trim().toLowerCase();}
+function safeHttpUrl(raw){try{const url=new URL(raw);return ['http:','https:'].includes(url.protocol)?url.href:null;}catch{return null;}}
+function addContactLink(parent,label,value,href){if(!value)return;const div=document.createElement('div');if(href){const a=document.createElement('a');a.href=href;a.textContent=label+': '+value;if(label==='LinkedIn'){a.target='_blank';a.rel='noopener noreferrer';}div.appendChild(a);}else div.textContent=label+': '+value;parent.appendChild(div);}
+function profileTitle(title){const div=document.createElement('div');div.className='profile-title';div.textContent=title;return div;}
+function startTaskForContact(id){const person=contacts.find(c=>c.id===id);if(!person)return;renderContactOptions();get('taskContact').value=id;filter='all';eventFilter='all';searchQuery='';editingId=null;get('taskSearch').value='';renderEventOptions();render();get('tasksSection').scrollIntoView({behavior:'smooth',block:'start'});get('taskInput').focus();message('New task for '+person.name);}
+const fields=[['name','Name',200],['company','Company',200],['email','Email',250],['phone','Phone',100],['linkedin','LinkedIn',500],['notes','Notes',1000]];
+function createContactForm(form,initial,onSave,onCancel){
+ form.replaceChildren();const controls={};
+ for(const [key,label,max] of fields){const wrapper=document.createElement('div');wrapper.className='field'+(key==='notes'?' full':'');const lbl=document.createElement('label'),id=form.id+'-'+key;lbl.htmlFor=id;lbl.textContent=label+(key==='name'?' *':'');let input;if(key==='notes'){input=document.createElement('textarea');input.rows=3;}else{input=document.createElement('input');input.type=key==='email'?'email':'text';}input.id=id;input.maxLength=max;input.value=initial[key]||'';if(key==='name')input.required=true;wrapper.append(lbl,input);form.appendChild(wrapper);controls[key]=input;}
+ const actions=document.createElement('div');actions.className='form-actions full';const save=document.createElement('button');save.type='submit';save.className='primary';save.textContent='Save Contact';const cancel=document.createElement('button');cancel.type='button';cancel.textContent='Cancel';cancel.addEventListener('click',onCancel);actions.append(save,cancel);form.appendChild(actions);
+ form.onsubmit=e=>{e.preventDefault();const c={};for(const [key] of fields)c[key]=controls[key].value.trim();if(!c.name){contactMessage('Name is required.');controls.name.focus();return;}onSave(c);};return controls;
+}
+function closeManual(){get('manualWrap').hidden=true;get('manualContactForm').replaceChildren();}
+get('addContactButton').addEventListener('click',()=>{const wrap=get('manualWrap');if(!wrap.hidden){closeManual();return;}wrap.hidden=false;const controls=createContactForm(get('manualContactForm'),{},data=>{const candidate={id:makeId(),...data};if(contacts.some(c=>contactKey(c)===contactKey(candidate))){contactMessage('A contact with this email (or name and company) already exists.');return;}if(saveContacts([...contacts,candidate])){expandedContactId=candidate.id;closeManual();renderContacts();}},closeManual);controls.name.focus();});
+function renderContacts(){
+ const list=get('contactList');list.replaceChildren();
+ const found=contacts.filter(c=>[c.name,c.company,c.email,c.phone,c.linkedin,c.notes].some(v=>v.toLocaleLowerCase().includes(contactQuery)));
+ get('contactsCount').textContent=found.length+' of '+contacts.length+' contacts';
+ if(!found.length){const li=document.createElement('li');li.className='empty';li.textContent=contacts.length?'No contacts match your search.':'No contacts yet. Add one manually or import a CSV.';list.appendChild(li);return;}
+ for(const c of found.slice(0,100)){
+  const li=document.createElement('li');li.className='contact';const open=expandedContactId===c.id;
+  const top=document.createElement('div');top.className='contact-top';const heading=document.createElement('div');heading.className='contact-heading';
+  const nameButton=document.createElement('button');nameButton.type='button';nameButton.className='contact-name-button';nameButton.textContent=c.name+(open?' −':' +');nameButton.setAttribute('aria-expanded',String(open));nameButton.addEventListener('click',()=>{expandedContactId=open?null:c.id;if(open)editingContactId=null;renderContacts();});heading.appendChild(nameButton);
+  if(c.company){const company=document.createElement('div');company.className='contact-company';company.textContent=c.company;heading.appendChild(company);}
+  const hint=document.createElement('div');hint.className='hint';hint.textContent=open?'Click name to close profile':'Click name to view full profile';heading.appendChild(hint);
+  const add=document.createElement('button');add.type='button';add.className='add-contact-task';add.textContent='+ Add Task';add.addEventListener('click',()=>startTaskForContact(c.id));top.append(heading,add);li.appendChild(top);
+  const profile=document.createElement('div');profile.className='contact-profile';profile.hidden=!open;profile.appendChild(profileTitle('Contact Details'));
+  const details=document.createElement('div');details.className='contact-fields';if(c.company){const el=document.createElement('div');el.textContent='Company: '+c.company;details.appendChild(el);}
+  addContactLink(details,'Email',c.email,c.email?'mailto:'+c.email:null);
+  addContactLink(details,'Phone',c.phone,c.phone?'tel:'+c.phone.replace(/[^+\d]/g,''):null);
+  addContactLink(details,'LinkedIn',c.linkedin,safeHttpUrl(c.linkedin));
+  if(details.childElementCount)profile.appendChild(details);else{const empty=document.createElement('div');empty.className='profile-empty';empty.textContent='No additional contact details available.';profile.appendChild(empty);}
+  // V2.3: Draft a general email from the contact profile.
+  if(c.email){const email=document.createElement('button');email.type='button';email.textContent='✉ Email Contact';email.addEventListener('click',()=>openDraft(c.email,'Following up','Hi '+c.name+',\n\n'));profile.appendChild(email);}
+  profile.appendChild(profileTitle('Notes'));const notes=document.createElement('div');notes.className='contact-note';notes.textContent=c.notes||'No notes available.';profile.appendChild(notes);
+  const edit=document.createElement('button');edit.type='button';edit.textContent=editingContactId===c.id?'Close Edit':'Edit Contact';edit.addEventListener('click',()=>{editingContactId=editingContactId===c.id?null:c.id;renderContacts();});profile.appendChild(edit);
+  if(editingContactId===c.id){const wrap=document.createElement('div');wrap.className='edit-contact-wrap';const form=document.createElement('form');form.className='contact-form';form.id='edit-contact-'+c.id;createContactForm(form,c,data=>{const next={...c,...data};if(contacts.some(x=>x.id!==c.id&&contactKey(x)===contactKey(next))){contactMessage('Another contact already has this email (or name and company).');return;}if(saveContacts(contacts.map(x=>x.id===c.id?next:x))){editingContactId=null;expandedContactId=c.id;renderContacts();}},()=>{editingContactId=null;renderContacts();});wrap.appendChild(form);profile.appendChild(wrap);}
+  profile.appendChild(profileTitle('Follow-up Tasks'));const linked=tasks.filter(t=>t.contactId===c.id),openTasks=linked.filter(t=>!t.done).length,summary=document.createElement('div');summary.className='contact-task-summary';summary.textContent=linked.length+' linked task(s) · '+openTasks+' open';profile.appendChild(summary);
+  if(linked.length){const ul=document.createElement('ul');ul.className='contact-tasks';for(const t of linked){const row=document.createElement('li');row.className=t.done?'completed':'';row.textContent=(t.done?'✓ ':'○ ')+t.text+(t.due?' · Due: '+t.due:'')+' · '+(t.priority||'Medium')+' · '+eventName(t.eventId);ul.appendChild(row);}profile.appendChild(ul);}
+  else{const empty=document.createElement('div');empty.className='profile-empty';empty.textContent='No tasks for this contact yet.';profile.appendChild(empty);}
+  li.appendChild(profile);list.appendChild(li);
+ }
+ if(found.length>100){const li=document.createElement('li');li.className='empty';li.textContent='Showing first 100 contacts. Refine your search.';list.appendChild(li);}
+}
+async function importContactsCSV(file){
+ if(!file)return;if(!storageAvailable)return contactMessage('Storage unavailable. Import blocked.');
+ try{if(file.size>2*1024*1024)throw Error('CSV is larger than 2 MB');const rows=parseCSV(await file.text());if(rows.length>2001)throw Error('CSV has more than 2,000 rows');const imported=csvContacts(rows),seen=new Set(contacts.map(contactKey)),additions=[];
+  for(const c of imported){const key=contactKey(c);if(seen.has(key))continue;seen.add(key);additions.push(c);}if(!additions.length)return contactMessage('No new contacts found. Existing contacts kept.');if(!saveContacts([...contacts,...additions]))return;contactMessage('Imported '+additions.length+' new contacts. Skipped '+(imported.length-additions.length)+' duplicates.');
+ }catch(e){console.error(e);contactMessage('CSV import failed: '+e.message+'. No contacts changed.');}
+}
+get('importCsv').addEventListener('click',()=>get('contactFile').click());
+get('contactFile').addEventListener('change',e=>{const file=e.target.files[0];e.target.value='';if(file)importContactsCSV(file);});
+get('contactSearch').addEventListener('input',e=>{contactQuery=e.target.value.trim().toLocaleLowerCase();renderContacts();});
+get('csvHelpButton').addEventListener('click',()=>get('csvHelpDialog').showModal());
+get('closeCsvHelp').addEventListener('click',()=>get('csvHelpDialog').close());
+load();renderEventOptions();renderContactOptions();render();renderContacts();
+</script>
+</body>
+</html>
